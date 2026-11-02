@@ -10,6 +10,21 @@
 <meta content="#1b1b1e" name="theme-color"/>
 </head>
 <body>
+<section class="login-screen" id="login-screen" aria-labelledby="login-title">
+<div class="login-card">
+<img alt="Logo Karya Bahana Berlian" src="assets/images/kbb-symbol.png"/>
+<span class="section-eyebrow">KARYA BAHANA BERLIAN</span>
+<h1 id="login-title">Masuk ke HRGA System</h1>
+<p>Gunakan akun prototype untuk membuka dashboard maintenance.</p>
+<form id="login-form">
+<label class="field">Username<input autocomplete="username" name="username" required/></label>
+<label class="field">Password<input autocomplete="current-password" name="password" required type="password"/></label>
+<p aria-live="polite" class="login-error" id="login-error" hidden></p>
+<button type="submit">Masuk</button>
+</form>
+<small>Prototype lokal — akun belum terhubung ke server.</small>
+</div>
+</section>
 <div class="shell">
 <aside class="sidebar">
 <div class="brand-side">
@@ -97,6 +112,7 @@
       </p>
 </div>
 <div class="actions">
+<button class="secondary" id="logout" type="button">Keluar</button>
 <button class="secondary" id="export">
        Export CSV
       </button>
@@ -667,7 +683,7 @@
 <div class="modalfooter"><button class="secondary" id="import-cancel" type="button">Batal</button><button id="import-confirm" type="button">Import Data</button></div>
 </div>
 </div>
-<script defer="" src="js/vendor/jszip.min.js"></script><script defer="" src="js/assets.js"></script><script defer="" src="js/app.js">
+<script defer="" src="js/auth.js"></script><script defer="" src="js/vendor/jszip.min.js"></script><script defer="" src="js/assets.js"></script><script defer="" src="js/app.js">
 </script>
 </body>
 </html>
