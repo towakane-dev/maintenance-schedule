@@ -1,131 +1,139 @@
-# Karya Bahana Berlian
+# Karya Bahana Berlian HRGA
 
-## HRGA Asset & Maintenance Dashboard
+## Asset & Maintenance Dashboard
 
-Prototype aplikasi untuk mengelola master aset, jadwal maintenance, reminder, histori pekerjaan, dan laporan HRGA.
-
-> **Status:** Prototype lokal
-> Data dan login saat ini hanya tersimpan di browser yang digunakan.
-
-## Cara Menjalankan
-
-1. Pastikan seluruh folder dan file tetap berada dalam satu folder proyek.
-2. Buka `index.html` menggunakan Chrome atau Microsoft Edge.
-3. Login menggunakan akun prototype:
-
-   | Username | Password |
-   | --- | --- |
-   | `admin` | `admin123` |
-
-4. Pilih menu yang ingin digunakan dari sidebar.
-
-Tidak diperlukan instalasi Node.js, database, atau server untuk menjalankan prototype ini.
-
-## Fitur Utama
-
-- Login dan logout prototype.
-- Overview dashboard dengan ringkasan status maintenance.
-- Master Asset untuk menambah, mengubah, mencari, mengimpor, dan mengekspor data aset.
-- Maintenance Calendar untuk melihat jadwal berdasarkan tanggal.
-- Master Schedule untuk membuat dan mengelola jadwal preventive/corrective maintenance.
-- Reminder Center untuk memantau jadwal yang akan datang dan overdue.
-- Maintenance History untuk melihat pekerjaan yang telah selesai.
-- Grafik dan laporan maintenance yang dapat diekspor sebagai PNG, CSV, atau PDF melalui fitur cetak browser.
-
-## Master Asset
-
-### Data wajib
-
-- Kode Aset — harus unik.
-- Nama Aset.
-- Kategori.
-
-### Kategori yang tersedia
-
-- Fasilitas
-- Elektronik
-- Kendaraan
-- Gedung & Bangunan
-
-### Data tambahan
-
-Entitas Perusahaan, Area, Lokasi Detail, Merek, Model/Tipe, Serial Number/Plat, Tahun Perolehan, Penanggung Jawab, Kondisi, dan Catatan.
-
-Status **Lengkap** menunjukkan bahwa kolom identitas dan informasi utama aset sudah terisi. Status ini bukan verifikasi kondisi fisik aset.
-
-### Import dan export
-
-- Gunakan **Template Excel** untuk format import yang sesuai.
-- Lengkapi data pada sheet `DATA_ASET`.
-- Gunakan **Import Excel / CSV**, periksa pratinjau, lalu konfirmasi import.
-- Kode aset duplikat dalam file atau data wajib yang tidak lengkap akan ditolak.
-- Jika kode aset sudah terdaftar, data yang terisi dapat memperbarui data lama.
-- Lakukan **Export Aset CSV** sebelum melakukan import besar sebagai backup manual.
-- Aset yang masih digunakan oleh jadwal atau histori tidak dapat dihapus.
-
-## Login Prototype
-
-Login saat ini hanya digunakan untuk membatasi tampilan dashboard pada browser lokal.
-
-- Kredensial didefinisikan di [`js/auth.js`](./js/auth.js).
-- Status login disimpan di `localStorage`.
-- Tombol **Keluar** menghapus sesi login dari browser.
-- Password belum menggunakan backend, enkripsi, atau database.
-
-**Jangan gunakan login ini sebagai autentikasi untuk aplikasi publik atau data perusahaan yang sensitif.** Untuk penggunaan produksi, diperlukan backend, database pengguna, password hashing, session management, dan kontrol hak akses.
-
-## Penyimpanan Data
-
-Data prototype disimpan pada `localStorage` browser:
-
-- Jadwal dan histori: `maintpro-demo-v1`
-- Master Asset: `kbb-hrga-assets-v4`
-- Status login: `kbb-hrga-login`
-
-Akibatnya:
-
-- Data tidak otomatis tersinkronisasi antar komputer atau browser.
-- Menghapus data situs/browser dapat menghapus data aplikasi.
-- Gunakan export CSV sebagai backup manual.
-- Tombol **Reset Demo** mengembalikan jadwal dan Master Asset ke data contoh.
+Aplikasi untuk mengelola master aset, jadwal maintenance, reminder, histori pekerjaan, dan laporan HRGA.
 
 ## Struktur Proyek
 
 ```text
 KBB_HRGA_SourceCode_V4_DOWNLOAD_ULANG/
-├── index.html                         # Halaman dashboard dan modal aplikasi
+├── frontend-vite/       # Frontend React + Vite baru
+│   ├── src/
+│   └── package.json
+├── index.html            # Frontend legacy (dipertahankan)
 ├── css/
-│   └── style.css                      # Gaya tampilan aplikasi
 ├── js/
-│   ├── app.js                         # Jadwal, kalender, reminder, histori, laporan
-│   ├── assets.js                      # Master Asset dan import Excel/CSV
-│   ├── auth.js                        # Login/logout prototype lokal
-│   └── vendor/
-│       └── jszip.min.js               # Pembaca file Excel offline
-└── assets/
-    ├── Template_Master_Asset_KBB.xlsx
-    └── images/
-        ├── kbb-symbol.png
-        └── logo-kbb.jpg
+├── assets/
+├── KBB_HRGA_MAINTENANCE SCHEDULE Prototype.html
+├── backend/
+│   ├── prisma/schema.prisma
+│   ├── src/
+│   │   ├── index.ts
+│   │   ├── shared/
+│   │   └── modules/
+│   │       ├── auth/
+│   │       ├── assets/
+│   │       └── schedules/
+│   ├── package.json
+│   └── .env.example
+└── docker-compose.yml
 ```
 
-## Migrasi Data Versi Lama
+Backend menggunakan layered architecture:
 
-Jika aplikasi demo versi lama pernah digunakan pada origin browser yang sama:
+```text
+module/
+├── presentation/    # Route dan controller HTTP
+├── application/     # Service dan use case
+└── infrastructure/  # Repository dan akses database
+```
 
-- Jadwal lama pada `maintpro-demo-v1` akan dibaca.
-- Master Asset akan dibuat dari jadwal yang sudah tersedia.
-- Aset yang belum terdaftar akan dibuat sebagai profil awal yang dapat dilengkapi kemudian.
+## Menjalankan Aplikasi
 
-## Batasan Prototype
+### Prasyarat
 
-- Belum memiliki database online.
-- Belum memiliki sinkronisasi antar pengguna.
-- Belum memiliki role dan hak akses.
-- Belum memiliki audit log server.
-- Reminder email dan WhatsApp masih berupa draft manual.
-- Tidak disarankan untuk deployment publik tanpa pengembangan backend dan pengamanan tambahan.
+- Node.js 20 atau lebih baru.
+- Docker Desktop.
 
-## Logo
+### Menyalakan PostgreSQL
 
-Logo dan simbol Karya Bahana Berlian digunakan berdasarkan aset yang diberikan pengguna.
+```powershell
+docker compose up -d
+Copy-Item backend\.env.example backend\.env
+```
+
+Edit `backend\.env` dan ganti `JWT_SECRET` dengan secret acak yang panjang.
+
+### Menyiapkan backend
+
+```powershell
+Set-Location backend
+npm install
+npm run db:generate
+npm run db:migrate -- --name init
+npm run db:seed
+npm run dev
+```
+
+Buka `http://localhost:3000` di Chrome atau Microsoft Edge.
+
+Login awal:
+
+| Username | Password |
+| --- | --- |
+| `admin` | `admin123` |
+
+Password admin dapat diubah pada `backend\.env` sebelum menjalankan `npm run db:seed`.
+
+## API Utama
+
+- `POST /api/auth/login` — login.
+- `POST /api/auth/register` — membuat akun baru.
+- `POST /api/auth/logout` — logout.
+- `GET /api/auth/me` — memeriksa sesi aktif.
+- `GET|POST /api/assets` — membaca dan membuat aset.
+- `PUT|DELETE /api/assets/:id` — mengubah dan menghapus aset.
+- `GET|POST /api/schedules` — membaca dan membuat jadwal.
+- `PUT|DELETE /api/schedules/:id` — mengubah dan menghapus jadwal.
+- `POST /api/sync` — sinkronisasi data legacy frontend ke PostgreSQL.
+
+## Database
+
+PostgreSQL dikelola dengan Prisma dan memiliki tabel:
+
+- `User` — akun dan password hash.
+- `Asset` — master aset.
+- `Schedule` — jadwal dan histori pekerjaan.
+
+Backend menjadi sumber data utama untuk login, aset, dan jadwal. Adapter `js/api-sync.js` memuat data PostgreSQL saat sesi login tersedia dan mengirim perubahan dari UI lama ke `/api/sync`. Fallback `localStorage` tetap dipertahankan agar prototype tidak rusak ketika backend offline.
+
+## Frontend React + Vite
+
+Frontend baru tersedia di `frontend-vite/`. File legacy di root repository tidak dihapus
+agar dapat dipakai sebagai pembanding selama migrasi.
+
+```powershell
+Set-Location frontend-vite
+npm install
+npm run dev
+```
+
+Vite berjalan di `http://localhost:5173` dan meneruskan request `/api` ke backend
+di `http://localhost:3000`. Jalankan backend pada terminal terpisah sesuai langkah
+di atas.
+
+Sinkronisasi legacy bersifat upsert: data baru dan perubahan dikirim ke database, tetapi penghapusan dari UI lama belum menghapus record PostgreSQL. Ini sengaja dibuat aman untuk tahap migrasi awal.
+
+## Fitur Frontend
+
+- Login dan logout berbasis session cookie HTTP-only.
+- Master Asset.
+- Maintenance Calendar.
+- Master Schedule.
+- Reminder Center.
+- Maintenance History.
+- Grafik dan laporan.
+- Import/export aset Excel atau CSV.
+
+## Catatan Keamanan
+
+- Jangan commit `backend/.env`.
+- Ganti `JWT_SECRET` dan password database untuk deployment.
+- Password disimpan sebagai hash bcrypt.
+- Login membutuhkan backend; jangan membuka `frontend/index.html` langsung dengan double-click.
+- Belum tersedia role/hak akses dan audit log.
+
+## Data Legacy
+
+Versi prototype sebelumnya menyimpan data jadwal dan aset di `localStorage`. Data tersebut tetap dapat dibaca oleh kode frontend lama, tetapi migrasi ke PostgreSQL perlu dilakukan melalui proses import tersendiri.
