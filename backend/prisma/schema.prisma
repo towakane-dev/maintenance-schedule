@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  role         String   @default("admin")
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  schedules    Schedule[]
+  activityLogs ActivityLog[]
+  notifications Notification[]
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  scheduleId String
+  type       String
+  title      String
+  message    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, scheduleId, type])
+  @@index([userId, isRead, createdAt])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([entity, entityId])
+}
+
+model Asset {
+  id         String   @id @default(cuid())
+  code       String   @unique
+  name       String
+  category   String
+  company    String   @default("")
+  area       String   @default("")
+  location   String   @default("")
+  brand      String   @default("")
+  model      String   @default("")
+  serial     String   @default("")
+  year       String   @default("")
+  owner      String   @default("")
+  condition  String   @default("Belum Dicek")
+  notes      String   @default("")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  schedules  Schedule[]
+}
+
+model Schedule {
+  id         String   @id @default(cuid())
+  code       String
+  machine    String
+  area       String
+  activity   String
+  type       String   @default("Preventive")
+  frequency  String   @default("Insidental")
+  due        DateTime
+  pic        String
+  complete   Boolean  @default(false)
+  finished   DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  assetId    String
+  createdById String
+  asset      Asset   @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  createdBy  User    @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  notifications Notification[]
+
+  @@index([due])
+  @@index([assetId])
+}
