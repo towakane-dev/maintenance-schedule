@@ -1,33 +1,36 @@
 # Karya Bahana Berlian HRGA
 
-## Asset & Maintenance Dashboard
+## Asset & Maintenance System
 
-Aplikasi untuk mengelola master aset, jadwal maintenance, reminder, histori pekerjaan, dan laporan HRGA.
+Aplikasi internal HRGA untuk mengelola master aset, jadwal maintenance, reminder, histori pekerjaan, notifikasi realtime, audit log, dan laporan.
 
 ## Struktur Proyek
 
 ```text
 KBB_HRGA_SourceCode_V4_DOWNLOAD_ULANG/
-├── frontend-vite/       # Frontend React + Vite baru
+├── frontend/              # Frontend React 19 + Vite + TypeScript
+│   ├── public/assets/     # Logo dan template import
 │   ├── src/
-│   └── package.json
-├── index.html            # Frontend legacy (dipertahankan)
-├── css/
-├── js/
-├── assets/
-├── KBB_HRGA_MAINTENANCE SCHEDULE Prototype.html
-├── backend/
-│   ├── prisma/schema.prisma
+│   │   ├── features/      # Komponen per halaman (auth, assets, schedules, dashboard)
+│   │   ├── shared/        # API client, util, komponen bersama
+│   │   └── styles.css     # Design system (satu sumber gaya)
+│   └── vite.config.ts
+├── backend/               # API Express 5 + TypeScript + Prisma
+│   ├── prisma/
+│   │   ├── schema.prisma
+│   │   └── migrations/
 │   ├── src/
 │   │   ├── index.ts
-│   │   ├── shared/
+│   │   ├── shared/        # Database, auth, rate-limit, mailer, activity log
 │   │   └── modules/
-│   │       ├── auth/
-│   │       ├── assets/
-│   │       └── schedules/
+│   │       ├── auth/              # Login, sesi, manajemen user & role
+│   │       ├── assets/            # Master aset + import CSV
+│   │       ├── schedules/         # Jadwal maintenance
+│   │       ├── notifications/     # Notifikasi realtime (SSE) + digest email
+│   │       └── activity-logs/     # Audit trail
 │   ├── package.json
 │   └── .env.example
-└── docker-compose.yml
+└── docker-compose.yml     # PostgreSQL untuk development (opsional)
 ```
 
 Backend menggunakan layered architecture:
@@ -39,101 +42,110 @@ module/
 └── infrastructure/  # Repository dan akses database
 ```
 
-## Menjalankan Aplikasi
+## Menjalankan Aplikasi (Development)
 
 ### Prasyarat
 
 - Node.js 20 atau lebih baru.
-- Docker Desktop.
+- PostgreSQL 14+ (instalasi lokal, atau `docker compose up -d` dari file yang tersedia).
 
-### Menyalakan PostgreSQL
+### Konfigurasi
 
 ```powershell
-docker compose up -d
 Copy-Item backend\.env.example backend\.env
 ```
 
-Edit `backend\.env` dan ganti `JWT_SECRET` dengan secret acak yang panjang.
+Edit `backend\.env`:
+
+- `DATABASE_URL` — koneksi PostgreSQL lokal.
+- `JWT_SECRET` — wajib diganti dengan secret acak yang panjang (`openssl rand -hex 48`).
+- `ADMIN_USERNAME` / `ADMIN_PASSWORD` — kredensial superadmin awal untuk seed.
+- `SMTP_*` — opsional; kosongkan untuk mode dry-run email reminder.
 
 ### Menyiapkan backend
 
 ```powershell
 Set-Location backend
-npm install
+npm ci
 npm run db:generate
-npm run db:migrate -- --name init
+npm run db:migrate deploy
 npm run db:seed
 npm run dev
 ```
 
-Buka `http://localhost:3000` di Chrome atau Microsoft Edge.
+API berjalan di `http://localhost:3000`. Kredensial awal mengikuti
+`ADMIN_USERNAME` / `ADMIN_PASSWORD` pada `.env` — segera ganti password
+melalui halaman User Management setelah login pertama.
 
-Login awal:
-
-| Username | Password |
-| --- | --- |
-| `admin` | `admin123` |
-
-Password admin dapat diubah pada `backend\.env` sebelum menjalankan `npm run db:seed`.
-
-## API Utama
-
-- `POST /api/auth/login` — login.
-- `POST /api/auth/register` — membuat akun baru.
-- `POST /api/auth/logout` — logout.
-- `GET /api/auth/me` — memeriksa sesi aktif.
-- `GET|POST /api/assets` — membaca dan membuat aset.
-- `PUT|DELETE /api/assets/:id` — mengubah dan menghapus aset.
-- `GET|POST /api/schedules` — membaca dan membuat jadwal.
-- `PUT|DELETE /api/schedules/:id` — mengubah dan menghapus jadwal.
-- `POST /api/sync` — sinkronisasi data legacy frontend ke PostgreSQL.
-
-## Database
-
-PostgreSQL dikelola dengan Prisma dan memiliki tabel:
-
-- `User` — akun dan password hash.
-- `Asset` — master aset.
-- `Schedule` — jadwal dan histori pekerjaan.
-
-Backend menjadi sumber data utama untuk login, aset, dan jadwal. Adapter `js/api-sync.js` memuat data PostgreSQL saat sesi login tersedia dan mengirim perubahan dari UI lama ke `/api/sync`. Fallback `localStorage` tetap dipertahankan agar prototype tidak rusak ketika backend offline.
-
-## Frontend React + Vite
-
-Frontend baru tersedia di `frontend-vite/`. File legacy di root repository tidak dihapus
-agar dapat dipakai sebagai pembanding selama migrasi.
+### Menjalankan frontend
 
 ```powershell
-Set-Location frontend-vite
-npm install
+Set-Location frontend
+npm ci
 npm run dev
 ```
 
-Vite berjalan di `http://localhost:5173` dan meneruskan request `/api` ke backend
-di `http://localhost:3000`. Jalankan backend pada terminal terpisah sesuai langkah
-di atas.
+Vite berjalan di `http://localhost:5173` dan meneruskan request `/api`
+ke backend di `http://localhost:3000`. Jalankan backend pada terminal terpisah.
 
-Sinkronisasi legacy bersifat upsert: data baru dan perubahan dikirim ke database, tetapi penghapusan dari UI lama belum menghapus record PostgreSQL. Ini sengaja dibuat aman untuk tahap migrasi awal.
+## Fitur
 
-## Fitur Frontend
+- Login/logout berbasis session cookie HTTP-only + rate limiting.
+- Role `admin` dan `superadmin` dengan proteksi endpoint.
+- Overview dashboard: statistik, tren penyelesaian, beban PIC.
+- Master Asset dengan import/export CSV.
+- Master Schedule dengan filter dan pencarian.
+- Maintenance Calendar dengan detail per tanggal.
+- Reminder Center (H-7, H-3, Hari H, overdue) dengan filter.
+- Notifikasi realtime via Server-Sent Events.
+- User Management (tambah/edit user, email untuk reminder).
+- Activity Logs sebagai audit trail.
+- Grafik, laporan, dan export CSV.
 
-- Login dan logout berbasis session cookie HTTP-only.
-- Master Asset.
-- Maintenance Calendar.
-- Master Schedule.
-- Reminder Center.
-- Maintenance History.
-- Grafik dan laporan.
-- Import/export aset Excel atau CSV.
+## API Utama
+
+| Endpoint | Keterangan |
+| --- | --- |
+| `POST /api/auth/login` | Login (rate limit 5 gagal / 15 menit per IP+username) |
+| `POST /api/auth/logout` | Logout |
+| `GET /api/auth/me` | Sesi aktif |
+| `GET|POST /api/auth/users` | Daftar & buat user (superadmin) |
+| `PUT|DELETE /api/auth/users/:id` | Edit & hapus user (superadmin) |
+| `GET|POST /api/assets` · `POST /api/assets/import` | Master aset & import massal |
+| `PUT|DELETE /api/assets/:id` | Ubah & hapus aset |
+| `GET|POST /api/schedules` | Jadwal maintenance |
+| `PUT|DELETE /api/schedules/:id` | Ubah & hapus jadwal |
+| `GET /api/notifications` · `GET /api/notifications/stream` | Notifikasi + stream realtime |
+| `PATCH /api/notifications/:id/read` · `PATCH /api/notifications/read-all` | Tandai dibaca |
+| `GET /api/activity-logs` | Audit trail (superadmin) |
+| `POST /api/sync` | Sinkronisasi data legacy (superadmin) |
+| `GET /api/health` | Health check |
+
+## Database
+
+PostgreSQL dikelola dengan Prisma:
+
+- `User` — akun, role, dan email (untuk reminder).
+- `Asset` — master aset.
+- `Schedule` — jadwal dan histori pekerjaan.
+- `Notification` — notifikasi per user.
+- `ActivityLog` — audit trail aksi pengguna.
+
+## Produksi
+
+- Build frontend (`npm run build`) — backend menyajikan hasilnya sebagai
+  static file lengkap dengan SPA fallback, sehingga cukup satu service.
+- Jalankan `npx prisma migrate deploy` saat rilis.
+- Set `NODE_ENV=production` (mengaktifkan cookie `secure`), HTTPS via
+  reverse proxy, dan `app.set('trust proxy', 1)` sudah terpasang.
+- Gunakan `JWT_SECRET` dan password admin yang berbeda per lingkungan.
+- Jadwalkan backup `pg_dump` harian.
 
 ## Catatan Keamanan
 
-- Jangan commit `backend/.env`.
-- Ganti `JWT_SECRET` dan password database untuk deployment.
-- Password disimpan sebagai hash bcrypt.
-- Login membutuhkan backend; jangan membuka `frontend/index.html` langsung dengan double-click.
-- Belum tersedia role/hak akses dan audit log.
-
-## Data Legacy
-
-Versi prototype sebelumnya menyimpan data jadwal dan aset di `localStorage`. Data tersebut tetap dapat dibaca oleh kode frontend lama, tetapi migrasi ke PostgreSQL perlu dilakukan melalui proses import tersendiri.
+- Jangan pernah commit `backend/.env`.
+- Password disimpan sebagai hash bcrypt (cost 12).
+- Session token JWT di cookie httpOnly + sameSite lax.
+- Rate limiting: 300 request / 15 menit per IP untuk API,
+  5 percobaan login gagal / 15 menit per IP+username.
+- Role dan audit log aktif untuk semua aksi penting.
