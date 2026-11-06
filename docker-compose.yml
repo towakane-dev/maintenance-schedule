@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hrga
+      POSTGRES_USER: hrga
+      POSTGRES_PASSWORD: hrga_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - hrga-postgres:/var/lib/postgresql/data
+
+volumes:
+  hrga-postgres:
