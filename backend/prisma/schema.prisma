@@ -18,6 +18,19 @@ model User {
   schedules    Schedule[]
   activityLogs ActivityLog[]
   notifications Notification[]
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Notification {
@@ -83,6 +96,8 @@ model Schedule {
   frequency  String   @default("Insidental")
   due        DateTime
   pic        String
+  picEmail   String?
+  completionNote String?
   complete   Boolean  @default(false)
   finished   DateTime?
   createdAt  DateTime @default(now())
