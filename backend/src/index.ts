@@ -1,7 +1,7 @@
+import 'dotenv/config';
 import path from 'node:path';
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import dotenv from 'dotenv';
 import helmet from 'helmet';
 import { authRouter } from './modules/auth/presentation/routes';
 import { assetsRouter } from './modules/assets/presentation/routes';
@@ -12,8 +12,6 @@ import { notificationsRouter } from './modules/notifications/presentation/routes
 import { checkNotifications } from './modules/notifications/service';
 import { scheduleDailyDigest } from './modules/notifications/email-digest';
 import { apiLimiter } from './shared/rate-limit';
-
-dotenv.config();
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -47,9 +45,22 @@ app.use((req, res, next) => {
   res.sendFile(path.join(frontendDist, 'index.html'));
 });
 
+// Global error handler: all API errors leave as clean JSON — never an HTML
+// stack trace or an empty body that the frontend cannot parse.
+app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('[api-error]', error);
+  if (res.headersSent) return;
+  res.status(500).json({ error: 'Terjadi kesalahan pada server. Coba lagi beberapa saat.' });
+});
+
+const runBackgroundSafely = (task: () => Promise<unknown>, label: string) => {
+  task().catch((reason) => console.error(`[background:${label}]`, reason));
+};
+
 app.listen(port, () => {
   console.log(`HRGA server running at http://localhost:${port}`);
-  void checkNotifications();
-  setInterval(() => void checkNotifications(), 60 * 1000);
+  // Background loops must never take the server down: DB blips are logged, not fatal.
+  runBackgroundSafely(checkNotifications, 'notifications');
+  setInterval(() => runBackgroundSafely(checkNotifications, 'notifications'), 60 * 1000);
   scheduleDailyDigest();
 });

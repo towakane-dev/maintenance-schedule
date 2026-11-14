@@ -11,6 +11,10 @@ export class ScheduleService {
     return this.schedules.findAll();
   }
 
+  hasActiveSchedule(assetId: string, excludeId?: string) {
+    return this.schedules.findActiveByAsset(assetId, excludeId);
+  }
+
   async create(data: {
     assetId: string;
     activity: string;
@@ -18,14 +22,19 @@ export class ScheduleService {
     frequency: string;
     due: Date;
     pic: string;
+    picEmail?: string | null;
+    completionNote?: string | null;
     complete: boolean;
     finished: Date | null;
     createdById: string;
   }) {
     const asset = await this.assets.findById(data.assetId);
     if (!asset) return null;
+    if (await this.schedules.findActiveByAsset(data.assetId)) return 'duplicate' as const;
     return this.schedules.create({
       ...data,
+      picEmail: data.picEmail || null,
+      completionNote: data.completionNote || null,
       code: asset.code,
       machine: asset.name,
       area: asset.category,

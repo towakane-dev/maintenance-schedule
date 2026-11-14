@@ -28,6 +28,8 @@ const schedule = z.object({
   frequency: z.string().default('Insidental'),
   due: z.coerce.date(),
   pic: z.string().min(1),
+  picEmail: z.union([z.literal(''), z.null(), z.string().trim().email().max(120)]).optional(),
+  completionNote: z.union([z.literal(''), z.null(), z.string().trim().max(300)]).optional(),
   complete: z.boolean().default(false),
   finished: z.preprocess((value) => value || null, z.coerce.date().nullable().default(null)),
 });
@@ -65,6 +67,8 @@ router.post('/', async (req: AuthRequest, res) => {
         frequency: item.frequency,
         due: item.due,
         pic: item.pic,
+        picEmail: item.picEmail || null,
+        completionNote: item.completionNote || null,
         complete: item.complete,
         finished: item.finished,
         assetId: linkedAsset.id,

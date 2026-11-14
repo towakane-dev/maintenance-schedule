@@ -8,7 +8,7 @@ function jakartaDate(date: Date) {
   return `${values.year}-${values.month}-${values.day}`;
 }
 
-function escapeHtml(value: string) {
+export function escapeHtml(value: string) {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
@@ -45,7 +45,12 @@ export async function sendDailyDigest() {
   for (const user of users) {
     if (!user.email) continue;
     const html = `<div style="font-family:Arial,sans-serif;max-width:640px"><h2 style="margin:0 0 4px;color:#202126">Reminder Maintenance HRGA</h2><p style="margin:0 0 10px;color:#71757d;font-size:12px">Ringkasan jadwal per ${today} — total ${total} jadwal perlu perhatian.</p>${renderSection('🔴 Overdue', '#c81e27', overdue)}${renderSection('🟠 H-1 (Besok)', '#b17d12', h1)}${renderSection('🟡 H-3', '#926200', h3)}<p style="margin:20px 0 0;color:#9699a0;font-size:11px">Email otomatis dari HRGA System — Karya Bahana Berlian. Mohon tidak membalas.</p></div>`;
-    if (await sendMail(user.email, `Reminder Maintenance HRGA — ${total} jadwal perlu perhatian (${today})`, html)) sent += 1;
+    // Satu penerima gagal tidak boleh menggagalkan run: lanjut ke penerima berikutnya.
+    try {
+      if (await sendMail(user.email, `Reminder Maintenance HRGA — ${total} jadwal perlu perhatian (${today})`, html)) sent += 1;
+    } catch (reason) {
+      console.error(`[mail:digest] gagal kirim ke ${user.email}`, reason);
+    }
   }
   await prisma.activityLog.create({ data: { action: 'EMAIL_DIGEST', entity: 'Notification', entityId: today, metadata: { total, recipients: users.length, sent } } });
   console.log(`[mail:digest] ${today}: ${total} jadwal → ${sent} email terkirim`);
@@ -61,6 +66,6 @@ export function scheduleDailyDigest() {
     const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date());
     const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
     const hour = Number(values.hour);
-    if (hour === 7) void sendDailyDigest();
+    if (hour === 7) sendDailyDigest().catch((reason) => console.error('[mail:digest] run gagal', reason));
   }, 10 * 60 * 1000);
 }

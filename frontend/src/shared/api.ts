@@ -7,7 +7,8 @@ export type Asset = {
 };
 export type Schedule = {
   id: string; assetId: string; code: string; machine: string; area: string;
-  activity: string; type: string; frequency: string; due: string; pic: string;
+  activity: string; type: string; frequency: string; due: string; pic: string; picEmail: string | null;
+  completionNote: string | null;
   complete: boolean; finished: string | null; createdAt: string;
 };
 export type ActivityLog = {
@@ -25,14 +26,36 @@ export type ActivityLog = {
 export type Notification = { id: string; title: string; message: string; type: string; isRead: boolean; createdAt: string; schedule: { code: string; machine: string; activity: string; due: string } };
 export type PaginatedActivityLogs = { items: ActivityLog[]; total: number };
 
-async function request<T>(url: string, options?: RequestInit): Promise<T> {
+// Satu refresh berjalan bersamaan di antara banyak request yang gagal 401.
+let refreshPromise: Promise<boolean> | null = null;
+
+function tryRefresh(): Promise<boolean> {
+  refreshPromise ??= fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' })
+    .then((response) => response.ok)
+    .catch(() => false)
+    .finally(() => { refreshPromise = null; });
+  return refreshPromise;
+}
+
+async function request<T>(url: string, options?: RequestInit, retried = false): Promise<T> {
   const response = await fetch(url, {
     credentials: 'include',
     ...options,
     headers: { 'Content-Type': 'application/json', ...options?.headers },
   });
-  const body = response.status === 204 ? null : await response.json();
-  if (!response.ok) throw new Error(body?.error || 'Permintaan gagal.');
+  if (response.status === 401 && !retried && !url.startsWith('/api/auth/login') && !url.startsWith('/api/auth/refresh')) {
+    if (await tryRefresh()) return request<T>(url, options, true);
+  }
+  // Respons bisa kosong/bukan JSON (mis. koneksi putus di tengah jalan atau error proxy) —
+  // jangan biarkan response.json() melempar TypeError mentah ke UI.
+  let body: { error?: string } | null = null;
+  if (response.status !== 204) {
+    const text = await response.text();
+    if (text) {
+      try { body = JSON.parse(text); } catch { body = null; }
+    }
+  }
+  if (!response.ok) throw new Error(body?.error || `Permintaan gagal (HTTP ${response.status}).`);
   return body as T;
 }
 
@@ -58,7 +81,8 @@ export const api = {
   importAssets: (data: Omit<Asset, 'id'>[]) => request<Asset[]>('/api/assets/import', { method: 'POST', body: JSON.stringify(data) }),
   updateAsset: (id: string, data: Partial<Omit<Asset, 'id'>>) => request<Asset>(`/api/assets/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteAsset: (id: string) => request<void>(`/api/assets/${id}`, { method: 'DELETE' }),
-  createSchedule: (data: { assetId: string; activity: string; type: string; frequency: string; due: string; pic: string; complete: boolean; finished: string | null }) => request<Schedule>('/api/schedules', { method: 'POST', body: JSON.stringify(data) }),
+  createSchedule: (data: { assetId: string; activity: string; type: string; frequency: string; due: string; pic: string; picEmail?: string | null; completionNote?: string | null; complete: boolean; finished: string | null }) => request<Schedule>('/api/schedules', { method: 'POST', body: JSON.stringify(data) }),
   updateSchedule: (id: string, data: Partial<Omit<Schedule, 'id' | 'code' | 'machine' | 'area' | 'assetId'>>) => request<Schedule>(`/api/schedules/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteSchedule: (id: string) => request<void>(`/api/schedules/${id}`, { method: 'DELETE' }),
+  emailPicReminder: (id: string) => request<{ sent: boolean; to: string }>(`/api/schedules/${id}/email-pic`, { method: 'POST' }),
 };

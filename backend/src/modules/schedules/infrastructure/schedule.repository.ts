@@ -9,6 +9,13 @@ export class ScheduleRepository {
     return prisma.schedule.findUnique({ where: { id } });
   }
 
+  findActiveByAsset(assetId: string, excludeId?: string) {
+    return prisma.schedule.findFirst({
+      where: { assetId, complete: false, ...(excludeId ? { id: { not: excludeId } } : {}) },
+      select: { id: true, code: true, activity: true },
+    });
+  }
+
   create(data: {
     assetId: string;
     activity: string;
@@ -16,6 +23,8 @@ export class ScheduleRepository {
     frequency: string;
     due: Date;
     pic: string;
+    picEmail?: string | null;
+    completionNote?: string | null;
     complete: boolean;
     finished: Date | null;
     code: string;

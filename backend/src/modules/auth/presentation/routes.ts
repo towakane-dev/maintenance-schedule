@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth, requireRole } from '../../../shared/auth';
-import { loginLimiter } from '../../../shared/rate-limit';
+import { loginLimiter, refreshLimiter } from '../../../shared/rate-limit';
 import { AuthService } from '../application/auth.service';
 import { UserRepository } from '../infrastructure/user.repository';
+import { RefreshTokenRepository } from '../infrastructure/refresh-token.repository';
 import { AuthController } from './controller';
 
 const router = Router();
@@ -16,7 +17,7 @@ const userCredentials = credentials.extend({
   email: z.union([z.literal(''), z.string().trim().email().max(120)]).optional(),
 });
 const userUpdate = userCredentials.partial();
-const controller = new AuthController(new AuthService(new UserRepository()));
+const controller = new AuthController(new AuthService(new UserRepository(), new RefreshTokenRepository()));
 
 router.get('/me', requireAuth, controller.me);
 router.get('/users', requireAuth, requireRole(['superadmin']), controller.listUsers);
@@ -41,6 +42,7 @@ router.put('/users/:id', requireAuth, requireRole(['superadmin']), (req, res, ne
 router.delete('/users/:id', requireAuth, requireRole(['superadmin']), (req, res, next) => {
   return controller.deleteUser(req, res).catch(next);
 });
+router.post('/refresh', refreshLimiter, controller.refresh);
 router.post('/logout', requireAuth, controller.logout);
 
 export { router as authRouter };

@@ -1,13 +1,23 @@
 import { Request, Response } from 'express';
 import { AuthRequest } from '../../../shared/auth';
 import { diffChanges, recordActivitySafely } from '../../../shared/activity-log';
-import { AuthService } from '../application/auth.service';
+import { ACCESS_TOKEN_MINUTES, REFRESH_TOKEN_DAYS, AuthService } from '../application/auth.service';
+
+const cookieBase = {
+  httpOnly: true,
+  sameSite: 'lax' as const,
+  secure: process.env.NODE_ENV === 'production',
+};
 
 const sessionCookie = (res: Response, token: string) => res.cookie('hrga_session', token, {
-  httpOnly: true,
-  sameSite: 'lax',
-  secure: process.env.NODE_ENV === 'production',
-  maxAge: 8 * 60 * 60 * 1000,
+  ...cookieBase,
+  maxAge: ACCESS_TOKEN_MINUTES * 60 * 1000,
+});
+
+const refreshCookie = (res: Response, token: string) => res.cookie('hrga_refresh', token, {
+  ...cookieBase,
+  path: '/api/auth',
+  maxAge: REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000,
 });
 
 export class AuthController {
@@ -37,7 +47,25 @@ export class AuthController {
     req.userId = user.id;
     await recordActivitySafely(req, { action: 'LOGIN_SUCCESS', entity: 'Auth', entityId: user.id, metadata: { username: user.username } });
     sessionCookie(res, this.service.createToken(user.id));
+    refreshCookie(res, await this.service.issueRefreshToken(user.id));
     res.json({ user });
+  };
+
+  refresh = async (req: AuthRequest, res: Response) => {
+    const raw = req.cookies.hrga_refresh as string | undefined;
+    if (!raw) {
+      res.status(401).json({ error: 'Sesi tidak valid, silakan login ulang.' });
+      return;
+    }
+    const rotated = await this.service.rotateRefreshToken(raw);
+    if (!rotated) {
+      res.clearCookie('hrga_refresh', { path: '/api/auth' });
+      res.status(401).json({ error: 'Sesi tidak valid, silakan login ulang.' });
+      return;
+    }
+    sessionCookie(res, this.service.createToken(rotated.userId));
+    refreshCookie(res, rotated.token);
+    res.json({ user: rotated.user });
   };
 
   createUser = async (req: AuthRequest, res: Response) => {
@@ -55,6 +83,7 @@ export class AuthController {
   };
 
   updateUser = async (req: AuthRequest, res: Response) => {
+    const before = await this.service.findPublicUser(String(req.params.id));
     const result = await this.service.updateUser(String(req.params.id), req.body, req.userId!);
     if (result === 'username_taken') {
       res.status(409).json({ error: 'Username sudah digunakan.' });
@@ -72,7 +101,6 @@ export class AuthController {
       res.status(400).json({ error: 'Tidak dapat mengubah role akun sendiri.' });
       return;
     }
-    const before = await this.service.findPublicUser(String(req.params.id));
     const changes = before ? diffChanges({ username: before.username, email: before.email, role: before.role }, { username: result.username, email: result.email ?? null, role: result.role }, ['username', 'email', 'role']) : {};
     await recordActivitySafely(req, { action: 'UPDATE', entity: 'User', entityId: result.id, metadata: { username: result.username, changes } });
     res.json({ user: result });
@@ -99,8 +127,11 @@ export class AuthController {
   };
 
   logout = async (req: AuthRequest, res: Response) => {
+    const raw = req.cookies.hrga_refresh as string | undefined;
+    if (raw) await this.service.revokeRefreshToken(raw);
     await recordActivitySafely(req, { action: 'LOGOUT', entity: 'Auth', entityId: req.userId });
     res.clearCookie('hrga_session');
+    res.clearCookie('hrga_refresh', { path: '/api/auth' });
     res.status(204).end();
   };
 }

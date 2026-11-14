@@ -14,6 +14,8 @@ const scheduleInput = z.object({
   frequency: z.string().trim().max(30).default('Insidental'),
   due: z.coerce.date(),
   pic: z.string().trim().min(1).max(50),
+  picEmail: z.union([z.literal(''), z.null(), z.string().trim().email().max(120)]).optional(),
+  completionNote: z.union([z.literal(''), z.null(), z.string().trim().max(300)]).optional(),
   complete: z.boolean().default(false),
   finished: z.preprocess((value) => value || null, z.coerce.date().nullable().default(null)),
 });
@@ -33,6 +35,7 @@ router.put('/:id', (req, res, next) => {
   req.body = parsed.data;
   return controller.update(req, res).catch(next);
 });
+router.post('/:id/email-pic', controller.emailPic);
 router.delete('/:id', controller.delete);
 
 export { router as schedulesRouter };

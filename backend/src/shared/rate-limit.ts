@@ -29,3 +29,13 @@ export const loginLimiter = rateLimit({
   },
   handler: jsonHandler('Terlalu banyak percobaan login gagal. Coba lagi dalam 15 menit.'),
 });
+
+/** Limiter untuk endpoint refresh; melonggarkan bila akses token sering diperbarui
+ * dalam sesi aktif, tetapi tetap membatasi penyalahgunaan endpoint per IP. */
+export const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  handler: jsonHandler('Terlalu banyak permintaan sesi. Coba lagi nanti.'),
+});

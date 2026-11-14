@@ -2,11 +2,19 @@ import bcrypt from 'bcryptjs';
 import 'dotenv/config';
 import { prisma } from '../../../shared/database';
 import { UserRepository } from './user.repository';
+import { RefreshTokenRepository } from './refresh-token.repository';
 
 async function main() {
   const username = process.env.ADMIN_USERNAME || 'admin';
-  const password = process.env.ADMIN_PASSWORD || 'admin123';
+  const password = process.env.ADMIN_PASSWORD;
+  if (!password) {
+    console.error('ADMIN_PASSWORD wajib diset di backend/.env sebelum menjalankan db:seed (tidak ada fallback password default).');
+    process.exitCode = 1;
+    return;
+  }
   const user = await new UserRepository().upsert(username, await bcrypt.hash(password, 12));
+  // Seed yang menulis ulang password = reset kredensial; cabut semua sesi lama user ini.
+  await new RefreshTokenRepository().revokeAllForUser(user.id);
   console.log(`Admin account ready: ${username}`);
 
   const today = new Date();
