@@ -3,6 +3,7 @@ import { AuthRequest } from '../../../shared/auth';
 import { diffChanges, recordActivitySafely } from '../../../shared/activity-log';
 import { sendScheduleEmailToPic } from '../../notifications/service';
 import { ScheduleService } from '../application/schedule.service';
+import { prisma } from '../../../shared/database';
 
 export class ScheduleController {
   constructor(private readonly service: ScheduleService) {}
@@ -20,6 +21,11 @@ export class ScheduleController {
     }
     if (!schedule.picEmail) {
       res.status(400).json({ error: 'Jadwal ini belum memiliki email PIC — isi dulu lewat Edit Jadwal.' });
+      return;
+    }
+    const recentSend = await prisma.activityLog.findFirst({ where: { action: 'PIC_EMAIL_MANUAL', entityId: String(req.params.id), createdAt: { gte: new Date(Date.now() - 2 * 60 * 1000) } } });
+    if (recentSend) {
+      res.status(429).json({ error: 'Email untuk jadwal ini baru saja dikirim. Coba lagi dalam 2 menit.' });
       return;
     }
     const today = new Date().toISOString().slice(0, 10);

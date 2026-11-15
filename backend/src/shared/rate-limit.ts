@@ -39,3 +39,12 @@ export const refreshLimiter = rateLimit({
   legacyHeaders: false,
   handler: jsonHandler('Terlalu banyak permintaan sesi. Coba lagi nanti.'),
 });
+
+/** Limiter untuk kirim manual email reminder ke PIC — mencegah mail-bombing. */
+export const emailPicLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  handler: jsonHandler('Terlalu banyak pengiriman email. Coba lagi dalam 15 menit.'),
+});

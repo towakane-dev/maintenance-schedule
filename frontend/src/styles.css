@@ -176,4 +176,29 @@ button:disabled:hover{background:inherit}
   .sidebar-logout .nav-text{display:inline}
   .mobile-backdrop{position:fixed;inset:0;background:#05050566;z-index:65}
 }
+/* ===== LOGIN mobile: form dulu, intro ringkas ===== */
+@media(max-width:720px){
+  .login-layout{display:flex;flex-direction:column;min-height:0}
+  .login-card{order:-1;padding:24px 20px 22px}
+  .login-intro{gap:14px;padding:18px 20px 20px}
+  .login-intro-copy h1{font-size:19px;letter-spacing:-0.4px;margin:10px 0 8px}
+  .login-intro-copy p{font-size:12px}
+  .login-brand-mark{width:34px;height:34px}
+  .login-trust{font-size:10px}
+  .login-screen{position:relative;inset:auto;overflow-x:hidden}
+  .login-intro{display:none}
+  .login-layout{min-height:100vh;justify-content:center;align-items:center}
 }
+/* ===== REPORTS mobile: cegah chart tembus kanan ===== */
+@media(max-width:600px){
+  .chartrow{grid-template-columns:76px minmax(40px,1fr) 22px;gap:7px}
+  .reportchart{gap:9px;min-width:0}
+  .charttrack,.charttrack .segment{min-width:0}
+  .reportmetric{gap:8px}
+  .reportmetric span:first-child{min-width:0;overflow-wrap:anywhere}
+  .charts,.report-insights{min-width:0}
+}
+.report-table{overflow-x:auto}.report-table table{min-width:340px}
+.topbar-logout{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;padding:0;background:#fff;color:#5f636b;border:1px solid #dfe2e6;cursor:pointer;transition:background .15s}.topbar-logout:hover{background:#f5f6f7;color:#202126}
+@media(max-width:790px){.corporate-brand,.corporate-brand img{width:auto;min-width:0;max-width:180px}.corporate-brand img{max-height:38px;object-fit:contain}}
+@media(max-width:790px){.corporate-brand{width:auto;min-width:0}.corporate-brand img{max-height:38px;width:auto;object-fit:contain}}

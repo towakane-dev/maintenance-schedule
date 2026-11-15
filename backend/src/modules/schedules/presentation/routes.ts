@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { AuthRequest, requireAuth } from '../../../shared/auth';
+import { emailPicLimiter } from '../../../shared/rate-limit';
 import { AssetRepository } from '../../assets/infrastructure/asset.repository';
 import { ScheduleService } from '../application/schedule.service';
 import { ScheduleRepository } from '../infrastructure/schedule.repository';
@@ -35,7 +36,7 @@ router.put('/:id', (req, res, next) => {
   req.body = parsed.data;
   return controller.update(req, res).catch(next);
 });
-router.post('/:id/email-pic', controller.emailPic);
+router.post('/:id/email-pic', emailPicLimiter, controller.emailPic);
 router.delete('/:id', controller.delete);
 
 export { router as schedulesRouter };
