@@ -37,7 +37,7 @@ export class ScheduleService {
       completionNote: data.completionNote || null,
       code: asset.code,
       machine: asset.name,
-      area: asset.category,
+      area: asset.area,
     });
   }
 

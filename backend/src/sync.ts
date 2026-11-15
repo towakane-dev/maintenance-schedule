@@ -61,7 +61,7 @@ router.post('/', async (req: AuthRequest, res) => {
       const data = {
         code: linkedAsset.code,
         machine: linkedAsset.name,
-        area: linkedAsset.category,
+        area: linkedAsset.area,
         activity: item.activity,
         type: item.type,
         frequency: item.frequency,

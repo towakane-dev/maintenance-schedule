@@ -19,11 +19,8 @@ export function OverviewMetrics({ assets, schedules, loading, today, onNavigate 
   const dueToday = schedules.filter((item) => !item.complete && item.due.slice(0, 10) === today);
   const pending = schedules.filter((item) => scheduleStatus(item, today) === 'Pending').length;
   const attention = schedules.filter((item) => !item.complete && (scheduleStatus(item, today) === 'Overdue' || item.due.slice(0, 10) === today)).sort((a, b) => a.due.localeCompare(b.due)).slice(0, 5);
-  const picSummary = [...new Set(schedules.map((item) => item.pic))].map((pic) => ({
-    pic,
-    open: schedules.filter((item) => item.pic === pic && !item.complete).length,
-    total: schedules.filter((item) => item.pic === pic).length,
-  })).sort((a, b) => b.open - a.open).slice(0, 5);
+  const conditionColors: Record<string, string> = { Baik: '#21a874', 'Perlu Perbaikan': '#b17d12', Rusak: '#d71920', 'Belum Dicek': '#9aa0a8', 'Tidak Aktif': '#c1c4cb' };
+  const conditionSummary = ['Baik', 'Perlu Perbaikan', 'Rusak', 'Belum Dicek', 'Tidak Aktif'].map((condition) => ({ condition, count: assets.filter((item) => item.condition === condition).length })).filter((row) => row.count > 0);
 
   const statCards: { label: string; value: string | number; hint: string; to?: string; className?: string }[] = [
     { label: 'Total Asset', value: assets.length, hint: 'Aset dalam Master Asset', to: '/assets' },
@@ -46,7 +43,7 @@ export function OverviewMetrics({ assets, schedules, loading, today, onNavigate 
     {!schedules.length && <div className="dashboard-empty">Belum ada jadwal maintenance. Tambahkan jadwal pertama dari halaman Master Schedule.</div>}
     {!!schedules.length && <section className="dashboard-insights">
       <div className="panel insight-panel"><div className="insight-heading"><div><span className="section-eyebrow">ACTION REQUIRED</span><h2>Perlu perhatian</h2></div><strong>{overdue + dueToday.length}</strong></div><p className="insight-description">Jadwal overdue dan jatuh tempo hari ini.</p>{attention.length ? <div className="insight-list">{attention.map((item) => <div className="insight-row" key={item.id}><div><strong>{item.code} — {item.machine}</strong><span>{item.activity}</span></div><div className="insight-meta"><small>{item.pic}</small><b className={scheduleStatus(item, today).toLowerCase()}>{scheduleStatus(item, today) === 'Overdue' ? `${Math.abs(Math.round((new Date(`${today}T12:00:00`).getTime() - new Date(`${item.due.slice(0, 10)}T12:00:00`).getTime()) / 86400000))} hari terlambat` : 'Jatuh tempo hari ini'}</b></div></div>)}</div> : <div className="insight-empty">Tidak ada jadwal yang mendesak.</div>}</div>
-      <div className="panel insight-panel"><div className="insight-heading"><div><span className="section-eyebrow">PIC WORKLOAD</span><h2>Beban PIC</h2></div><span className="insight-unit"></span></div><p className="insight-description">PIC dengan pekerjaan terbuka paling banyak.</p>{picSummary.length ? <div className="rank-list">{picSummary.map((item) => <div className="rank-row" key={item.pic}><div><strong>{item.pic}</strong><span>{item.total} total jadwal</span></div><b>{item.open}</b><div className="rank-bar"><i className="workload" style={{ width: `${item.total ? item.open / item.total * 100 : 0}%` }} /></div></div>)}</div> : <div className="insight-empty">Belum ada data PIC.</div>}</div>
+      <div className="panel insight-panel"><div className="insight-heading"><div><span className="section-eyebrow">ASSET HEALTH</span><h2>Kondisi Aset</h2></div><strong>{assets.length}</strong></div><p className="insight-description">Kondisi semua aset di Master Asset.</p>{conditionSummary.length ? <div className="rank-list">{conditionSummary.map((item) => <div className="rank-row" key={item.condition}><div><strong>{item.condition}</strong><span>{Math.round(item.count / (assets.length || 1) * 100)}% dari aset</span></div><b>{item.count}</b><div className="rank-bar"><i className="workload" style={{ width: `${assets.length ? item.count / assets.length * 100 : 0}%`, background: conditionColors[item.condition] }} /></div></div>)}</div> : <div className="insight-empty">Belum ada data aset.</div>}</div>
     </section>}
     {!!schedules.length && <CompletionTrend schedules={schedules} />}
   </>;
