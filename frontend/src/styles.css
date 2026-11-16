@@ -225,3 +225,18 @@ select{appearance:none!important;-webkit-appearance:none!important;-moz-appearan
   #history .reporttop,#history .tablewrap,#history .pagination{display:none!important}
   .print-doc{display:block!important}
 }
+
+/* ===== FILTER mobile: ikon toggle + panel filter ===== */
+.filters-body{display:contents}
+.filters-toggle{display:none}
+@media(max-width:600px){
+  .filters-toggle{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;border:1px solid #dfe2e6;border-radius:6px;background:#fff;color:#5f636b}
+  .filters-toggle:hover{background:#f5f6f7;color:#202126}
+  .asset-filters .filters-body,.schedule-filters .filters-body{display:none}
+  .asset-filters.open .filters-body,.schedule-filters.open .filters-body{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+  .asset-filters.open,.schedule-filters.open{flex-direction:column;align-items:stretch}
+  .filters-body label,.filters-body select,.filters-body input{width:100%;min-width:0}
+  .schedule-search{min-width:0}
+}
+
+@media(max-width:790px){.mobile-nav-toggle:hover{background:#d71920;color:#fff;border-color:#d71920}}
